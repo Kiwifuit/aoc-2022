@@ -21,23 +21,35 @@ class RPSMoveStrategy:
     your_move: RPSState
     outcome: RPSOutcome
 
-    def decide_condition(self):
-        if self.your_move == self.opponent_move:
-            self.outcome = RPSOutcome.DRAW
+    def guess_move(self):
+        match self.outcome:
+            case RPSOutcome.DRAW:
+                self.get_drawing_move()
+            case RPSOutcome.WIN:
+                self.get_winning_move()
+            case RPSOutcome.LOSE:
+                self.get_losing_move()
 
-        match (self.your_move, self.opponent_move):
-            case (RPSState.PAPER, RPSState.ROCK) | (RPSState.PAPER, RPSState.ROCK,) | (
-                RPSState.SCISSORS,
-                RPSState.PAPER,
-            ) | (RPSState.ROCK, RPSState.SCISSORS):
-                self.outcome = RPSOutcome.WIN
-            case (RPSState.ROCK, RPSState.PAPER) | (RPSState.ROCK, RPSState.PAPER,) | (
-                RPSState.PAPER,
-                RPSState.SCISSORS,
-            ) | (RPSState.SCISSORS, RPSState.ROCK):
-                self.outcome = RPSOutcome.LOSE
+    def get_drawing_move(self):
+        self.your_move = self.opponent_move
 
-        print(self.outcome)
+    def get_winning_move(self):
+        match self.opponent_move:
+            case RPSState.PAPER:
+                self.your_move = RPSState.SCISSORS
+            case RPSState.ROCK:
+                self.your_move = RPSState.PAPER
+            case RPSState.SCISSORS:
+                self.your_move = RPSState.ROCK
+
+    def get_losing_move(self):
+        match self.opponent_move:
+            case RPSState.PAPER:
+                self.your_move = RPSState.ROCK
+            case RPSState.ROCK:
+                self.your_move = RPSState.SCISSORS
+            case RPSState.SCISSORS:
+                self.your_move = RPSState.PAPER
 
     def calculate_score(self):
         return self.your_move.value + self.outcome.value
@@ -50,21 +62,27 @@ class RPSParser:
 
     def feed(self):
         for entry in self.raw_entries:
-            opponent, player = list(map(self.parse_code, entry.split()))
-            strategy = RPSMoveStrategy(opponent, player, None)
+            opponent, outcome = list(map(self.parse_code, entry.split()))
+            strategy = RPSMoveStrategy(opponent, None, outcome)
 
-            strategy.decide_condition()
+            strategy.guess_move()
 
             self.moves.append(strategy)
 
     def parse_code(self, item: str) -> RPSState:
         match item:
-            case "A" | "X":
+            case "A":
                 return RPSState.ROCK
-            case "B" | "Y":
+            case "B":
                 return RPSState.PAPER
-            case "C" | "Z":
+            case "C":
                 return RPSState.SCISSORS
+            case "X":
+                return RPSOutcome.LOSE
+            case "Y":
+                return RPSOutcome.DRAW
+            case "Z":
+                return RPSOutcome.WIN
 
     def calculate_player_scores(self):
         return sum((move.calculate_score() for move in self.moves))

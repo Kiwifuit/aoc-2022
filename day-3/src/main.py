@@ -98,19 +98,45 @@ class Rucksack:
             set(filter(lambda item: item in compartments[1].items, compartments[0].items))
         )[0]
 
+    @property
+    def all_items(self):
+        for compartment in self.compartments:
+            yield from compartment.items
 
-def get_rucksacks() -> list[Rucksack]:
+
+@dataclass(frozen=True)
+class ElfGroup:
+    rucksacks: tuple[Rucksack, Rucksack, Rucksack]
+
+    def find_badge(self):
+        all_items = [list(rucksack.all_items) for rucksack in self.rucksacks]
+
+        for item in all_items:
+            return list(
+                set(
+                    filter(
+                        lambda item: item in all_items[1] and item in all_items[2], item
+                    )
+                )
+            )[0]
+
+
+def get_elf_groups() -> list[ElfGroup]:
     raw = Path("day-3/input.txt").read_text().splitlines()
 
-    for line in raw:
+    rucksack_storage = []
+    for counter, line in enumerate(raw, 1):
         rucksack = Rucksack(None, line)
 
         rucksack.build_compartments()
+        rucksack_storage.append(rucksack)
 
-        yield rucksack
+        if counter % 3 == 0:
+            yield ElfGroup(rucksack_storage)
+            rucksack_storage.clear()
 
 
 if __name__ == "__main__":
-    res = sum(rucksack.find_common().priority for rucksack in get_rucksacks())
+    res = sum(elf_group.find_badge().priority for elf_group in get_elf_groups())
 
     print(res)
